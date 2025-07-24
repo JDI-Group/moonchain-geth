@@ -389,6 +389,8 @@ func (api *ConsensusAPI) forkchoiceUpdated(update engine.ForkchoiceStateV1, payl
 
 	// CHANGE(taiko): check whether `--taiko` flag is set.
 	isTaiko := api.eth.BlockChain().Config().Taiko
+	// CHANGE(moonchain): check whether --moonchain flag is set.
+	isMoonchain := api.eth.BlockChain().Config().Moonchain
 
 	if rawdb.ReadCanonicalHash(api.eth.ChainDb(), block.NumberU64()) != update.HeadBlockHash {
 		// Block is not canonical, set head.
@@ -399,7 +401,7 @@ func (api *ConsensusAPI) forkchoiceUpdated(update engine.ForkchoiceStateV1, payl
 		// If the specified head matches with our local head, do nothing and keep
 		// generating the payload. It's a special corner case that a few slots are
 		// missing and we are requested to generate the payload in slot.
-	} else if isTaiko { // CHANGE(taiko): reorg is allowed in L2.
+	} else if isTaiko || isMoonchain { // CHANGE(taiko): reorg is allowed in L2. // CHANGE(moonchain): reorg is allowed in L2.
 		if latestValid, err := api.eth.BlockChain().SetCanonical(block); err != nil {
 			return engine.ForkChoiceResponse{PayloadStatus: engine.PayloadStatusV1{Status: engine.INVALID, LatestValidHash: &latestValid}}, err
 		}
@@ -445,7 +447,8 @@ func (api *ConsensusAPI) forkchoiceUpdated(update engine.ForkchoiceStateV1, payl
 	// will replace it arbitrarily many times in between.
 	if payloadAttributes != nil {
 		// CHANGE(taiko): create a L2 block by Taiko protocol.
-		if isTaiko {
+		// CHANGE(moonchain): create a L2 block by Moonchain protocol.
+		if isTaiko || isMoonchain {
 			// No need to check payloadAttribute here, because all its fields are
 			// marked as required.
 			block, err := api.eth.Miner().SealBlockWith(
@@ -610,7 +613,7 @@ func (api *ConsensusAPI) NewPayloadV2(params engine.ExecutableData) (engine.Payl
 	}
 	if api.eth.BlockChain().Config().LatestFork(params.Timestamp) == forks.Shanghai {
 		if params.Withdrawals == nil &&
-			(api.eth.BlockChain().Config().Taiko && params.WithdrawalsHash == (common.Hash{})) {
+			(api.eth.BlockChain().Config().Taiko || api.eth.BlockChain().Config().Moonchain) && params.WithdrawalsHash == (common.Hash{}) {
 			return engine.PayloadStatusV1{Status: engine.INVALID}, engine.InvalidParams.With(errors.New("nil withdrawals post-shanghai"))
 		}
 	} else {
@@ -876,12 +879,14 @@ func (api *ConsensusAPI) newPayload(params engine.ExecutableData, versionedHashe
 
 	log.Trace("Engine API request received", "method", "NewPayload", "number", params.Number, "hash", params.BlockHash)
 	// CHANGE(taiko): allow passing the executable data with txHash instead of all transactions.
+	// CHANGE(moonchain): allow passing the executable data with txHash instead of all transactions.
 	var (
 		block *types.Block
 		err   error
 	)
 	params.TaikoBlock = api.eth.BlockChain().Config().Taiko
-	if api.eth.BlockChain().Config().Taiko && params.Transactions == nil && params.Withdrawals == nil {
+	params.MoonchainBlock = api.eth.BlockChain().Config().Moonchain
+	if (api.eth.BlockChain().Config().Taiko || api.eth.BlockChain().Config().Moonchain) && params.Transactions == nil && params.Withdrawals == nil {
 		block = types.NewBlockWithHeader(&types.Header{
 			ParentHash:      params.ParentHash,
 			UncleHash:       types.EmptyUncleHash,
@@ -978,7 +983,9 @@ func (api *ConsensusAPI) newPayload(params engine.ExecutableData, versionedHashe
 	}
 	// CHANGE(taiko): a block that has the same timestamp as its parents is
 	// allowed in Taiko protocol.
-	if api.eth.BlockChain().Config().Taiko {
+	// CHANGE(moonchain): a block that has the same timestamp as its parents is
+	// allowed in Moonchain protocol.
+	if api.eth.BlockChain().Config().Taiko || api.eth.BlockChain().Config().Moonchain {
 		if block.Time() < parent.Time() {
 			log.Warn("Invalid timestamp", "parent", block.Time(), "block", block.Time())
 			return api.invalid(errors.New("invalid timestamp"), parent.Header()), nil

@@ -271,7 +271,7 @@ func (api *API) traceChain(start, end *types.Block, config *TraceConfig, closed 
 				)
 				// Trace all the transactions contained within
 				for i, tx := range task.block.Transactions() {
-					if i == 0 && api.backend.ChainConfig().Taiko {
+					if i == 0 && (api.backend.ChainConfig().Taiko || api.backend.ChainConfig().Moonchain) {
 						if err := tx.MarkAsAnchor(); err != nil {
 							log.Warn("Mark anchor transaction error", "error", err)
 							task.results[i] = &txTraceResult{TxHash: tx.Hash(), Error: err.Error()}
@@ -552,7 +552,7 @@ func (api *API) IntermediateRoots(ctx context.Context, hash common.Hash, config 
 		core.ProcessParentBlockHash(block.ParentHash(), vm.NewEVM(vmctx, vm.TxContext{}, statedb, chainConfig, vm.Config{}), statedb)
 	}
 	for i, tx := range block.Transactions() {
-		if i == 0 && chainConfig.Taiko {
+		if i == 0 && (chainConfig.Taiko || chainConfig.Moonchain) {
 			if err := tx.MarkAsAnchor(); err != nil {
 				return nil, err
 			}
@@ -640,7 +640,7 @@ func (api *API) traceBlock(ctx context.Context, block *types.Block, config *Trac
 		core.ProcessParentBlockHash(block.ParentHash(), vmenv, statedb)
 	}
 	for i, tx := range txs {
-		if i == 0 && api.backend.ChainConfig().Taiko {
+		if i == 0 && (api.backend.ChainConfig().Taiko || api.backend.ChainConfig().Moonchain) {
 			if err := tx.MarkAsAnchor(); err != nil {
 				return nil, err
 			}
@@ -679,8 +679,9 @@ func (api *API) traceBlockParallel(ctx context.Context, block *types.Block, stat
 		threads = len(txs)
 	}
 
+	// CHANGE(moonchain): mark the first transaction as anchor transaction.
 	// CHANGE(taiko): mark the first transaction as anchor transaction.
-	if len(txs) > 0 && api.backend.ChainConfig().Taiko {
+	if len(txs) > 0 && (api.backend.ChainConfig().Taiko || api.backend.ChainConfig().Moonchain) {
 		if err := txs[0].MarkAsAnchor(); err != nil {
 			return nil, err
 		}
@@ -815,7 +816,7 @@ func (api *API) standardTraceBlockToFile(ctx context.Context, block *types.Block
 		core.ProcessParentBlockHash(block.ParentHash(), vmenv, statedb)
 	}
 	for i, tx := range block.Transactions() {
-		if i == 0 && chainConfig.Taiko {
+		if i == 0 && (chainConfig.Taiko || chainConfig.Moonchain) {
 			if err := tx.MarkAsAnchor(); err != nil {
 				return nil, err
 			}

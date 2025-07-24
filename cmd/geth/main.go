@@ -262,6 +262,8 @@ func init() {
 	)
 	// CHANGE(taiko): append Taiko flags into the original GETH flags
 	app.Flags = append(app.Flags, &utils.TaikoFlag)
+	// CHANGE(moonchain): append Moonchain flags into the original GETH falgs
+	app.Flags = append(app.Flags, &utils.MoonchainFlag)
 
 	flags.AutoEnvVars(app.Flags, "GETH")
 

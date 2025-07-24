@@ -109,6 +109,7 @@ type ExecutableData struct {
 	TxHash          common.Hash `json:"txHash"`          // CHANGE(taiko): allow passing txHash directly instead of transactions list
 	WithdrawalsHash common.Hash `json:"withdrawalsHash"` // CHANGE(taiko): allow passing WithdrawalsHash directly instead of withdrawals
 	TaikoBlock      bool        // CHANGE(taiko): whether this is a Taiko L2 block, only used by ExecutableDataToBlock
+	MoonchainBlock  bool        // CHANGE(moonchain): whether this is a Moonchain L2 block, only used by ExecutableDataToBlock
 }
 
 // JSON type overrides for executableData.

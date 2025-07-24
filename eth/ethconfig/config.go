@@ -19,6 +19,7 @@ package ethconfig
 
 import (
 	"errors"
+	"github.com/ethereum/go-ethereum/consensus/moonchain"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -163,6 +164,10 @@ type Config struct {
 // Clique is allowed for now to live standalone, but ethash is forbidden and can
 // only exist on already merged networks.
 func CreateConsensusEngine(config *params.ChainConfig, db ethdb.Database) (consensus.Engine, error) {
+	// CHANGE(moonchain): use Moonchain consesus engine when the --moonchain flag is set
+	if config.Moonchain {
+		return moonchain.New(config), nil
+	}
 	// CHANGE(taiko): use Taiko consensus engine when the --taiko flag is set.
 	if config.Taiko {
 		return taiko.New(config), nil

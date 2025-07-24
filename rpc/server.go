@@ -33,6 +33,9 @@ const EngineApi = "engine"
 // CHANGE(taiko): add `taikoAuth` namespace for authenticated APIs
 const TaikoAuth = "taikoAuth"
 
+// CHANGE(moonchain): add `moonchainAuth` namespace for authenticated APIs
+const MoonchainAuth = "moonchainAuth"
+
 // CodecOption specifies which type of messages a codec supports.
 //
 // Deprecated: this option is no longer honored by Server.

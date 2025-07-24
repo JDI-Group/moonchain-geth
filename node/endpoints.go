@@ -63,7 +63,7 @@ func checkModuleAvailability(modules []string, apis []rpc.API) (bad, available [
 	for _, name := range modules {
 		if _, ok := availableSet[name]; !ok {
 			// CHANGE(taiko): add `taikoAuth` namespace for authenticated APIs.
-			if name != rpc.MetadataApi && name != rpc.EngineApi && name != rpc.TaikoAuth {
+			if name != rpc.MetadataApi && name != rpc.EngineApi && name != rpc.MoonchainAuth && name != rpc.TaikoAuth {
 				bad = append(bad, name)
 			}
 		}

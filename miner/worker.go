@@ -160,7 +160,8 @@ func (miner *Miner) prepareWork(genParams *generateParams, witness bool) (*envir
 	timestamp := genParams.timestamp
 	if parent.Time >= timestamp {
 		// CHANGE(taiko): block.timestamp == parent.timestamp is allowed in Taiko protocol.
-		if !miner.chainConfig.Taiko {
+		// CHANGE(MOONCHAIN): block.timestamp == parent.timestamp is allowed in Moonchain protocol.
+		if !miner.chainConfig.Taiko && !miner.chainConfig.Moonchain {
 			if genParams.forceTime {
 				return nil, fmt.Errorf("invalid timestamp, parent %d given %d", parent.Time, timestamp)
 			}
@@ -189,7 +190,8 @@ func (miner *Miner) prepareWork(genParams *generateParams, witness bool) (*envir
 	}
 	// Set baseFee and GasLimit if we are on an EIP-1559 chain
 	if miner.chainConfig.IsLondon(header.Number) {
-		if miner.chainConfig.Taiko && genParams.baseFeePerGas != nil {
+		// CHANGE(MOONCHAIN): genParams apply to header
+		if (miner.chainConfig.Taiko || miner.chainConfig.Moonchain) && genParams.baseFeePerGas != nil {
 			header.BaseFee = genParams.baseFeePerGas
 		} else {
 			header.BaseFee = eip1559.CalcBaseFee(miner.chainConfig, parent)

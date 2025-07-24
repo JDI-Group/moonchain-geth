@@ -489,14 +489,18 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		st.state.AddBalance(st.evm.Context.Coinbase, fee, tracing.BalanceIncreaseRewardTransactionFee)
 
 		// CHANGE(taiko): basefee is not burnt, but sent to a treasury and block.coinbase instead.
-		if st.evm.ChainConfig().Taiko && st.evm.Context.BaseFee != nil && !st.msg.IsAnchor {
+		if (st.evm.ChainConfig().Taiko || st.evm.ChainConfig().Moonchain) && st.evm.Context.BaseFee != nil && !st.msg.IsAnchor {
 			totalFee := new(big.Int).Mul(st.evm.Context.BaseFee, new(big.Int).SetUint64(st.gasUsed()))
 			feeCoinbase := new(big.Int).Div(
 				new(big.Int).Mul(totalFee, new(big.Int).SetUint64(uint64(st.msg.BasefeeSharingPctg))),
 				new(big.Int).SetUint64(100),
 			)
 			feeTreasury := new(big.Int).Sub(totalFee, feeCoinbase)
-			st.state.AddBalance(st.getTreasuryAddress(), uint256.MustFromBig(feeTreasury), tracing.BalanceIncreaseTreasury)
+			if st.evm.ChainConfig().Moonchain {
+				st.state.AddBalance(st.getMoonchainTreasuryAddress(), uint256.MustFromBig(feeTreasury), tracing.BalanceIncreaseTreasury)
+			} else {
+				st.state.AddBalance(st.getTreasuryAddress(), uint256.MustFromBig(feeTreasury), tracing.BalanceIncreaseTreasury)
+			}
 			st.state.AddBalance(st.evm.Context.Coinbase, uint256.MustFromBig(feeCoinbase), tracing.BalanceIncreaseBaseFeeSharing)
 		}
 		// add the coinbase to the witness iff the fee is greater than 0
@@ -565,6 +569,11 @@ func (st *StateTransition) getTreasuryAddress() common.Address {
 			strings.Repeat("0", common.AddressLength*2-len(prefix)-len(suffix)) +
 			suffix,
 	)
+}
+
+// CHANGE(moonchain): returns the treasury address based on chain ID.
+func (st *StateTransition) getMoonchainTreasuryAddress() common.Address {
+	return common.HexToAddress("0x2000777700000000000000000000000000000001")
 }
 
 // DecodeOntakeExtraData decodes an ontake block's extradata, returns basefeeSharingPctg configurations,
