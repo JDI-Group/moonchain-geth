@@ -2,9 +2,9 @@ name: "Unit tests"
 
 on:
   pull_request:
-    branches: [taiko]
+    branches: [moonchain-dev, moonchain-mainnet]
   push:
-    branches: [taiko]
+    branches: [moonchain-dev, moonchain-mainnet]
 
 jobs:
   test:
