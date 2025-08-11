@@ -35,13 +35,16 @@ import (
 
 // ReadCanonicalHash retrieves the hash assigned to a canonical block number.
 func ReadCanonicalHash(db ethdb.Reader, number uint64) common.Hash {
+	// CHANGE(moonchain): Check leveldb first for most recent canonical hash updates
+	// This handles L2 reorg scenarios where ancient database may have stale canonical mappings
+	if leveldbData, err := db.Get(headerHashKey(number)); err == nil && len(leveldbData) > 0 {
+		return common.BytesToHash(leveldbData)
+	}
+
+	// Fallback to ancient database if not found in leveldb
 	var data []byte
 	db.ReadAncients(func(reader ethdb.AncientReaderOp) error {
 		data, _ = reader.Ancient(ChainFreezerHashTable, number)
-		if len(data) == 0 {
-			// Get it by hash from leveldb
-			data, _ = db.Get(headerHashKey(number))
-		}
 		return nil
 	})
 	return common.BytesToHash(data)
