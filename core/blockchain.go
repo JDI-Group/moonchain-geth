@@ -896,6 +896,13 @@ func (bc *BlockChain) setHeadBeyondRoot(head uint64, time uint64, root common.Ha
 			rawdb.DeleteBody(db, hash, num)
 			rawdb.DeleteReceipts(db, hash, num)
 		}
+
+		// CHANGE(moonchain): Clean up L1Origin data for L2 chains during setHead
+		if bc.Config().Taiko || bc.Config().Moonchain {
+			// Delete L1Origin data for this block number
+			rawdb.DeleteL1OriginByBlockNumber(db, num)
+		}
+
 		// Todo(rjl493456442) txlookup, bloombits, etc
 	}
 	// If SetHead was only called as a chain reparation method, try to skip
@@ -931,6 +938,15 @@ func (bc *BlockChain) setHeadBeyondRoot(head uint64, time uint64, root common.Ha
 		log.Error("SetHead invalidated finalized block")
 		bc.SetFinalized(nil)
 	}
+
+	// CHANGE(moonchain): Update head L1Origin after setHead for L2 chains
+	if bc.Config().Taiko || bc.Config().Moonchain {
+		currentHead := bc.CurrentBlock()
+		if currentHead != nil {
+			rawdb.UpdateHeadL1OriginAfterSetHead(bc.db, currentHead.Number.Uint64())
+		}
+	}
+
 	return rootNumber, bc.loadLastState()
 }
 

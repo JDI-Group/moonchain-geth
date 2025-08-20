@@ -90,3 +90,37 @@ func ReadHeadL1Origin(db ethdb.KeyValueReader) (*big.Int, error) {
 
 	return (*big.Int)(blockID), nil
 }
+
+// DeleteL1OriginByBlockNumber deletes L1Origin for the given block number.
+// This is used during blockchain reorg/setHead operations.
+func DeleteL1OriginByBlockNumber(db ethdb.KeyValueWriter, blockNumber uint64) {
+	// Convert block number to BlockID (assuming BlockID == block number for simplicity)
+	blockID := new(big.Int).SetUint64(blockNumber)
+
+	// Delete the L1Origin entry
+	if err := db.Delete(l1OriginKey(blockID)); err != nil {
+		log.Warn("Failed to delete L1Origin", "blockNumber", blockNumber, "err", err)
+	}
+}
+
+// UpdateHeadL1OriginAfterSetHead updates the head L1Origin pointer after a setHead operation.
+// It finds the latest valid L1Origin at or before the given block number.
+func UpdateHeadL1OriginAfterSetHead(db ethdb.Database, newHeadBlockNumber uint64) {
+	// Search backwards from the new head to find the latest valid L1Origin
+	for blockNum := newHeadBlockNumber; blockNum > 0; blockNum-- {
+		blockID := new(big.Int).SetUint64(blockNum)
+		if l1Origin, err := ReadL1Origin(db, blockID); err == nil && l1Origin != nil {
+			// Found a valid L1Origin, update the head pointer
+			WriteHeadL1Origin(db, blockID)
+			log.Info("Updated head L1Origin after setHead", "newHead", newHeadBlockNumber, "l1OriginBlock", blockNum)
+			return
+		}
+	}
+
+	// If no L1Origin found, clear the head pointer
+	if err := db.Delete(headL1OriginKey); err != nil {
+		log.Warn("Failed to clear head L1Origin", "err", err)
+	} else {
+		log.Info("Cleared head L1Origin after setHead (no valid L1Origin found)", "newHead", newHeadBlockNumber)
+	}
+}
