@@ -2,7 +2,7 @@ name: "Push docker image to GAR"
 
 on:
   push:
-    branches: [ moonchain-dev, moonchain-mainnet]
+    branches: [ moonchain-dev, moonchain ]
     tags:
       - "v*"
 
